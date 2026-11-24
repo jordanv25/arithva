@@ -107,6 +107,12 @@ client and the web app can never disagree. If you add a capability, write it in
   `paise_to_rupees_str()` for display, `speak_rupees()` for anything spoken.
 - Keep the frontend build-free. No npm, no bundler. It must start with one
   command on any laptop.
+- **No third-party service goes on the critical path.** Arithva must run with
+  no API key. Speech follows a provider chain (ElevenLabs, then the browser);
+  the weather tool returns `unavailable` rather than guessing. Any service you
+  add follows the same shape: try it, degrade honestly, never break.
+- Secrets live in `.env`, which is gitignored. Document the variable name in
+  `.env.example`. Never commit a key, never paste one into a chat.
 
 ## Before you commit
 

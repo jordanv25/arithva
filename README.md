@@ -85,6 +85,20 @@ nothing here pretends otherwise. It makes silent edits detectable.)
 
 ---
 
+## Voice: a provider chain, not a dependency
+
+Spoken replies try **ElevenLabs** first and fall back to the browser's own
+speech synthesis. The fallback is the design, not error handling bolted on:
+Arithva runs with no API key at all, so a missing key, an expired one, a quota
+limit or a slow network changes how the answer *sounds* and nothing else. The
+citizen screen shows which voice is actually speaking.
+
+To enable it, copy `.env.example` to `.env` and set `ELEVENLABS_API_KEY`.
+`.env` is gitignored and must never be committed.
+
+Adding a provider means adding a function that returns audio or `unavailable`,
+and putting it in the chain. Nothing else changes.
+
 ## Running it
 
 ```bash
@@ -148,16 +162,19 @@ We would rather state this plainly than have a judge find it.
 
 | | |
 |---|---|
-| **Real** | The MCP servers, the EMI arithmetic, the eligibility logic, the ECDSA signature generation and verification, the quorum escalation, the hash-chained audit log, the live weather call, browser speech in and out. |
+| **Real** | The MCP servers, the EMI arithmetic, the eligibility logic, the ECDSA signature generation and verification, the quorum escalation, the hash-chained audit log, the live weather call, browser speech in and out, the ElevenLabs integration and its fallback chain. |
 | **Simulated** | All money movement. Nothing is disbursed anywhere. The dashboard shows what *would* move. |
 | **Synthetic** | Seed jobs, demo employers and workers, the CSC and bank branch list. Labelled in the UI. |
 | **Demo-only** | Officer signing keys are generated in the browser for the demo. A real deployment would use officers' own managed keys, never keys created by this application. |
 | **Needs verifying** | The minimum-wage table is placeholder data and must be replaced from the Karnataka gazette notification. Several scheme rules are marked `VERIFY` in `data/schemes.json`. Local event dates need confirming locally. |
 | **Not built** | WhatsApp and IVR channels, mandi prices, document scanning, the daily voice brief. These are roadmap, and the deck shows them as roadmap. |
 
-Kannada speech accuracy on noisy shop audio is **untested**. The browser's
-speech API is what runs today; Bhashini or AI4Bharat models would likely do
-better, and that is future work, not a claim.
+Kannada speech accuracy on noisy shop audio is **untested**, in both
+directions. Speech *recognition* is the browser's Web Speech API; Bhashini or
+AI4Bharat would likely do better and that is future work, not a claim. For
+speech *output*, whether ElevenLabs handles Kannada well enough to rely on is
+**unverified** — listen to a sample before claiming it in a demo. The browser
+fallback means neither question breaks the product.
 
 ## Privacy
 

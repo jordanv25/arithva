@@ -76,14 +76,90 @@ mic.addEventListener('mouseup', stopListening);
 mic.addEventListener('touchstart', (e) => { e.preventDefault(); startListening(); });
 mic.addEventListener('touchend', (e) => { e.preventDefault(); stopListening(); });
 
-function speak(text) {
-  if (!window.speechSynthesis || !text) return;
+/* Speaking: try the server's voice provider, fall back to the browser.
+ *
+ * The fallback is not error handling bolted on, it is the design. Arithva must
+ * work with no API key, so a missing key, a quota limit or a slow network
+ * changes how the answer sounds and nothing else.
+ */
+
+let currentAudio = null;
+let voiceProviderConfigured = false;   // set once, on load
+
+async function speak(text) {
+  if (!text) return;
+  stopSpeaking();
+
+  // Skip the round trip entirely when no provider is configured. Without this
+  // every utterance logs a 503 in the console, which looks like a fault and
+  // is not one.
+  if (!voiceProviderConfigured) {
+    browserSpeak(text);
+    showVoiceProvider('browser');
+    return;
+  }
+
+  try {
+    const response = await fetch(API + '/api/speak', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, language: lang }),
+    });
+
+    if (response.ok) {
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      currentAudio = new Audio(url);
+      currentAudio.onended = () => URL.revokeObjectURL(url);
+      await currentAudio.play();
+      showVoiceProvider('ElevenLabs');
+      return;
+    }
+    // 503 means "use the browser voice", which is expected, not a failure.
+  } catch (_) {
+    // Network refused the request entirely. Same handling.
+  }
+
+  browserSpeak(text);
+  showVoiceProvider('browser');
+}
+
+function browserSpeak(text) {
+  if (!window.speechSynthesis) return;
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = lang;
   utterance.rate = 0.95;
   window.speechSynthesis.speak(utterance);
 }
+
+function stopSpeaking() {
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio = null;
+  }
+}
+
+function showVoiceProvider(name) {
+  const el = $('#voiceProvider');
+  if (!el) return;
+  const premium = name === 'ElevenLabs';
+  el.innerHTML = `<span class="chip ${premium ? 'ok' : 'syn'}">voice: ${escapeHtml(name)}</span>`;
+}
+
+/* Say on load which provider is configured, so the fallback is visible before
+ * anyone has spoken a word. */
+(async () => {
+  try {
+    const data = await fetch(API + '/api/speech/status').then((r) => r.json());
+    voiceProviderConfigured = data.value.configured === true;
+    showVoiceProvider(voiceProviderConfigured ? 'ElevenLabs' : 'browser');
+  } catch (_) {
+    voiceProviderConfigured = false;
+    showVoiceProvider('browser');
+  }
+})();
 
 $$('#langRow button').forEach((btn) => {
   btn.addEventListener('click', () => {

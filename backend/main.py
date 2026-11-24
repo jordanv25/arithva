@@ -10,12 +10,14 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from . import agent, audit, db
-from .tools import approvals_tool, jobs_tool, loan_tool, scheme_tool, weather_tool
+from .tools import (
+    approvals_tool, jobs_tool, loan_tool, scheme_tool, speech_tool, weather_tool,
+)
 
 FRONTEND = Path(__file__).resolve().parents[1] / "frontend"
 
@@ -87,6 +89,11 @@ class SignRequest(BaseModel):
     decision: str = "approve"
 
 
+class SpeakRequest(BaseModel):
+    text: str
+    language: str = "en-IN"
+
+
 class TamperRequest(BaseModel):
     entry_id: int
     new_detail: dict = Field(default_factory=lambda: {"note": "row edited by hand"})
@@ -143,6 +150,41 @@ def emi(amount_inr: float, tenure_months: int = 36,
 def subsidy(scheme_id: str, project_cost_inr: float,
             area: str = "rural", category: str = "general") -> dict:
     return loan_tool.subsidy_estimate(scheme_id, project_cost_inr, area, category)
+
+
+# ------------------------------------------------------------------ speech
+
+@app.get("/api/speech/status")
+def speech_status() -> dict:
+    """Which voice provider is active. Shown on the citizen screen."""
+    return speech_tool.status()
+
+
+@app.post("/api/speak")
+def speak(request: SpeakRequest):
+    """Speak some text.
+
+    Returns MP3 audio when ElevenLabs answers. Returns 503 with a reason when
+    it does not, which is the frontend's signal to use the browser voice. A 503
+    here is a normal, expected outcome, not a server fault.
+    """
+    result = speech_tool.synthesize(request.text, request.language)
+
+    if result["status"] != "ok":
+        return JSONResponse(
+            status_code=503,
+            content={"status": "unavailable", "reason": result["reason"],
+                     "fallback": "browser"},
+        )
+
+    return Response(
+        content=result["value"]["audio"],
+        media_type=result["value"]["content_type"],
+        headers={
+            "X-Arithva-Voice-Provider": "elevenlabs",
+            "X-Arithva-Voice-Model": result["value"]["model_id"],
+        },
+    )
 
 
 # --------------------------------------------------------------------- jobs
