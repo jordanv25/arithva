@@ -87,17 +87,24 @@ nothing here pretends otherwise. It makes silent edits detectable.)
 
 ## Voice: a provider chain, not a dependency
 
-Spoken replies try **ElevenLabs** first and fall back to the browser's own
-speech synthesis. The fallback is the design, not error handling bolted on:
-Arithva runs with no API key at all, so a missing key, an expired one, a quota
-limit or a slow network changes how the answer *sounds* and nothing else. The
-citizen screen shows which voice is actually speaking.
+Spoken replies try each provider in turn:
 
-To enable it, copy `.env.example` to `.env` and set `ELEVENLABS_API_KEY`.
-`.env` is gitignored and must never be committed.
+```
+ElevenLabs  →  Amazon Polly  →  the browser's own voice
+```
 
-Adding a provider means adding a function that returns audio or `unavailable`,
-and putting it in the chain. Nothing else changes.
+The fallback is the design, not error handling bolted on. Arithva runs with no
+API key at all, so a missing key, an expired one, a quota limit or a slow
+network changes how the answer *sounds* and nothing else. Each provider that
+fails records why, and the next one takes over. The citizen screen shows which
+voice actually answered.
+
+Configure in `.env` (copy `.env.example`). `.env` is gitignored and must never
+be committed. Polly also needs `pip install boto3`; without it the chain skips
+Polly and carries on.
+
+Adding a provider is one function that returns audio or `unavailable`, plus one
+entry in the chain. Nothing else changes.
 
 ## Running it
 
@@ -135,7 +142,7 @@ works in every browser.
 pytest backend/tests/ -v
 ```
 
-21 tests covering the money arithmetic, intent routing, the confirmation step,
+34 tests covering the money arithmetic, intent routing, the confirmation step,
 quorum escalation, signature forgery and replay, and the tamper-evident log.
 If these pass, the demo path works.
 
@@ -162,7 +169,7 @@ We would rather state this plainly than have a judge find it.
 
 | | |
 |---|---|
-| **Real** | The MCP servers, the EMI arithmetic, the eligibility logic, the ECDSA signature generation and verification, the quorum escalation, the hash-chained audit log, the live weather call, browser speech in and out, the ElevenLabs integration and its fallback chain. |
+| **Real** | The MCP servers, the EMI arithmetic, the eligibility logic, the ECDSA signature generation and verification, the quorum escalation, the hash-chained audit log, the live weather call, browser speech in and out, the ElevenLabs and Amazon Polly integrations and the fallback chain between them. |
 | **Simulated** | All money movement. Nothing is disbursed anywhere. The dashboard shows what *would* move. |
 | **Synthetic** | Seed jobs, demo employers and workers, the CSC and bank branch list. Labelled in the UI. |
 | **Demo-only** | Officer signing keys are generated in the browser for the demo. A real deployment would use officers' own managed keys, never keys created by this application. |
@@ -172,9 +179,9 @@ We would rather state this plainly than have a judge find it.
 Kannada speech accuracy on noisy shop audio is **untested**, in both
 directions. Speech *recognition* is the browser's Web Speech API; Bhashini or
 AI4Bharat would likely do better and that is future work, not a claim. For
-speech *output*, whether ElevenLabs handles Kannada well enough to rely on is
-**unverified** — listen to a sample before claiming it in a demo. The browser
-fallback means neither question breaks the product.
+speech *output*, whether ElevenLabs or Polly handle Kannada well enough to rely
+on is **unverified** — listen to a sample from each before claiming it in a
+demo. The chain means neither question breaks the product.
 
 ## Privacy
 

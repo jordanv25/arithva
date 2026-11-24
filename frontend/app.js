@@ -112,7 +112,9 @@ async function speak(text) {
       currentAudio = new Audio(url);
       currentAudio.onended = () => URL.revokeObjectURL(url);
       await currentAudio.play();
-      showVoiceProvider('ElevenLabs');
+      // The server says which provider actually answered, which is not always
+      // the first one in the chain.
+      showVoiceProvider(response.headers.get('X-Arithva-Voice-Provider') || 'server');
       return;
     }
     // 503 means "use the browser voice", which is expected, not a failure.
@@ -141,11 +143,14 @@ function stopSpeaking() {
   }
 }
 
+const VOICE_LABELS = { elevenlabs: 'ElevenLabs', polly: 'Amazon Polly', browser: 'browser' };
+
 function showVoiceProvider(name) {
   const el = $('#voiceProvider');
   if (!el) return;
-  const premium = name === 'ElevenLabs';
-  el.innerHTML = `<span class="chip ${premium ? 'ok' : 'syn'}">voice: ${escapeHtml(name)}</span>`;
+  const label = VOICE_LABELS[name] || name;
+  const hosted = label !== 'browser';
+  el.innerHTML = `<span class="chip ${hosted ? 'ok' : 'syn'}">voice: ${escapeHtml(label)}</span>`;
 }
 
 /* Say on load which provider is configured, so the fallback is visible before
@@ -154,7 +159,7 @@ function showVoiceProvider(name) {
   try {
     const data = await fetch(API + '/api/speech/status').then((r) => r.json());
     voiceProviderConfigured = data.value.configured === true;
-    showVoiceProvider(voiceProviderConfigured ? 'ElevenLabs' : 'browser');
+    showVoiceProvider(data.value.active);
   } catch (_) {
     voiceProviderConfigured = false;
     showVoiceProvider('browser');

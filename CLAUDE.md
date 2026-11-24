@@ -108,9 +108,11 @@ client and the web app can never disagree. If you add a capability, write it in
 - Keep the frontend build-free. No npm, no bundler. It must start with one
   command on any laptop.
 - **No third-party service goes on the critical path.** Arithva must run with
-  no API key. Speech follows a provider chain (ElevenLabs, then the browser);
-  the weather tool returns `unavailable` rather than guessing. Any service you
-  add follows the same shape: try it, degrade honestly, never break.
+  no API key. Speech follows a provider chain (ElevenLabs, then Amazon Polly,
+  then the browser); the weather tool returns `unavailable` rather than
+  guessing. Any service you add follows the same shape: try it, degrade
+  honestly, never break. Adding a voice provider is one function returning
+  audio or `unavailable`, plus one entry in the chain in `speech_tool.py`.
 - Secrets live in `.env`, which is gitignored. Document the variable name in
   `.env.example`. Never commit a key, never paste one into a chat.
 
@@ -120,7 +122,7 @@ client and the web app can never disagree. If you add a capability, write it in
 python -m pytest backend/tests/ -q
 ```
 
-21 tests cover the money arithmetic, intent routing, the confirmation gate,
+34 tests cover the money arithmetic, intent routing, the confirmation gate,
 quorum escalation, signature forgery and replay, and the tamper-evident log.
 **If these pass, the demo path works.** If you change behaviour deliberately,
 update the test in the same commit.

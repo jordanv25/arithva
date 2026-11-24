@@ -70,7 +70,7 @@ python -m uvicorn backend.main:app --reload --port 8001
 python -m pytest backend/tests/ -q
 ```
 
-21 tests. Run them before every commit. If they pass, the demo path works.
+34 tests. Run them before every commit. If they pass, the demo path works.
 
 ## Try the demo path
 

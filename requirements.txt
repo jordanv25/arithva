@@ -5,3 +5,7 @@ httpx>=0.28
 cryptography>=44.0
 mcp>=1.2
 pytest>=8.3
+
+# Only needed for the Amazon Polly voice provider. Without it, the speech
+# chain skips Polly and carries on.
+boto3>=1.35

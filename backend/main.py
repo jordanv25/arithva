@@ -181,8 +181,8 @@ def speak(request: SpeakRequest):
         content=result["value"]["audio"],
         media_type=result["value"]["content_type"],
         headers={
-            "X-Arithva-Voice-Provider": "elevenlabs",
-            "X-Arithva-Voice-Model": result["value"]["model_id"],
+            "X-Arithva-Voice-Provider": result["value"]["provider"],
+            "X-Arithva-Voice-Model": str(result["value"]["model_id"]),
         },
     )
 
