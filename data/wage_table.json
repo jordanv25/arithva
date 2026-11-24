@@ -1,0 +1,34 @@
+{
+  "_note": "Minimum wage lookup used by the Jobs tool to flag underpaid offers. PLACEHOLDER VALUES - these must be replaced with the figures from the current Karnataka minimum-wage gazette notification for the relevant zone and scheduled employment before this is used for anything real. The flag logic is what the prototype demonstrates; the numbers are not authoritative.",
+  "_status": "PLACEHOLDER - VERIFY AGAINST GAZETTE",
+  "_last_reviewed": "2026-11-24",
+  "state": "Karnataka",
+  "zone": "Zone 3 (district headquarters, placeholder)",
+  "currency": "INR",
+  "basis": "per day",
+  "trades": {
+    "unskilled": {"min_wage_inr": 500, "status": "PLACEHOLDER"},
+    "semi_skilled": {"min_wage_inr": 575, "status": "PLACEHOLDER"},
+    "skilled": {"min_wage_inr": 650, "status": "PLACEHOLDER"},
+    "highly_skilled": {"min_wage_inr": 725, "status": "PLACEHOLDER"}
+  },
+  "trade_to_category": {
+    "helper": "unskilled",
+    "labourer": "unskilled",
+    "cleaner": "unskilled",
+    "loader": "unskilled",
+    "painter": "semi_skilled",
+    "tailor": "semi_skilled",
+    "cook": "semi_skilled",
+    "driver": "semi_skilled",
+    "mason": "skilled",
+    "carpenter": "skilled",
+    "plumber": "skilled",
+    "electrician": "skilled",
+    "welder": "skilled",
+    "fitter": "highly_skilled"
+  },
+  "source": "Karnataka Labour Department minimum-wage notifications",
+  "source_url": "https://labour.karnataka.gov.in/",
+  "confidence": "NOT YET VERIFIED. Replace every figure above from the gazette notification before use."
+}

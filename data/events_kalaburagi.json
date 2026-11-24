@@ -1,0 +1,74 @@
+{
+  "_note": "Curated local events calendar for Kalaburagi, used by the Weather + Local Pulse tool to turn a forecast into business advice. Dates marked approximate move with the moon sighting or the local committee's announcement; the tool says so in its output.",
+  "_status": "CURATED DEMO DATA - dates need confirming locally before any real use",
+  "_last_reviewed": "2026-11-24",
+  "district": "Kalaburagi",
+  "state": "Karnataka",
+  "events": [
+    {
+      "id": "urs_bande_nawaz",
+      "name": "Urs of Khwaja Bande Nawaz",
+      "type": "religious gathering",
+      "typical_window": "15 to 17 Dhu al-Qadah (Islamic calendar)",
+      "scale": "very large, draws pilgrims from several states",
+      "areas_affected": ["Dargah area", "Station Road", "Super Market"],
+      "business_effect": "Large footfall for food, water, flowers, transport and lodging. Traffic diversions near the dargah.",
+      "date_confidence": "approximate, moves with the moon sighting"
+    },
+    {
+      "id": "sharanabasaveshwar_jatra",
+      "name": "Sharanabasaveshwar Jatra",
+      "type": "temple festival",
+      "typical_window": "a few days after Holi",
+      "scale": "large, district-wide",
+      "areas_affected": ["Temple area", "City centre"],
+      "business_effect": "Heavy footfall for food, sweets, flowers and small goods.",
+      "date_confidence": "approximate, set by the temple committee each year"
+    },
+    {
+      "id": "marriage_season",
+      "name": "Marriage season",
+      "type": "seasonal demand",
+      "typical_window": "November to February, and again around April and May",
+      "scale": "district-wide",
+      "areas_affected": ["District-wide"],
+      "business_effect": "Demand rises for tailors, caterers, painters, electricians, decorators, transport and tent houses.",
+      "date_confidence": "seasonal pattern, not a fixed date"
+    },
+    {
+      "id": "tur_harvest",
+      "name": "Tur (red gram) harvest and mandi arrivals",
+      "type": "agricultural season",
+      "typical_window": "December to February",
+      "scale": "district-wide, Kalaburagi is a major tur belt",
+      "areas_affected": ["APMC yard", "Rural taluks"],
+      "business_effect": "Cash flows into rural households; mandi area footfall rises; labour demand peaks for harvesting and loading.",
+      "date_confidence": "seasonal, shifts with the monsoon"
+    },
+    {
+      "id": "summer_heat",
+      "name": "Peak summer heat",
+      "type": "weather season",
+      "typical_window": "April to early June",
+      "scale": "district-wide",
+      "areas_affected": ["District-wide"],
+      "business_effect": "Cold drinks, buttermilk, water and shade sell well. Outdoor work shifts to early morning and evening. Afternoon footfall drops.",
+      "date_confidence": "seasonal"
+    }
+  ],
+  "advice_rules": {
+    "_note": "Deterministic advice bands. The AI never invents these; it reads them from here.",
+    "temperature_c": [
+      {"min": 40, "advice_key": "extreme_heat", "text": "Very hot. Stock extra water, buttermilk and cold drinks. Open early and expect a quiet afternoon. Outdoor work is safest before 11 am."},
+      {"min": 35, "max": 40, "advice_key": "hot", "text": "Hot. Cold drinks and shade sell well. Afternoon footfall will be lower than usual."},
+      {"min": 25, "max": 35, "advice_key": "normal", "text": "Comfortable. No weather-driven change to your usual stock."},
+      {"max": 25, "advice_key": "cool", "text": "Cooler than usual. Hot tea and snacks do better; cold stock moves slowly."}
+    ],
+    "rain_probability_pct": [
+      {"min": 70, "advice_key": "heavy_rain_likely", "text": "Rain is likely. Footfall drops sharply, so keep perishable stock low and cover outdoor displays."},
+      {"min": 40, "max": 70, "advice_key": "rain_possible", "text": "Rain is possible. Keep a cover ready for outdoor stock."}
+    ]
+  },
+  "source": "Local calendar compiled by the team; weather thresholds are our own design values",
+  "confidence": "Event dates must be confirmed locally. Advice bands are our own rules, not official guidance."
+}

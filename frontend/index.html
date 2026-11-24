@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Arithva</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">Arith<span>va</span><small>Speak. The tools decide. Officers sign.</small></div>
+  <nav>
+    <button data-screen="citizen" class="active">Citizen</button>
+    <button data-screen="officer">Officer</button>
+    <button data-screen="dashboard">Dashboard</button>
+    <button data-screen="audit">Audit log</button>
+  </nav>
+</header>
+
+<main>
+
+<!-- ============================================================ CITIZEN -->
+<section id="citizen" class="screen active">
+  <h2>Ask in your language</h2>
+  <p class="sub">Hold the button and speak, or type below. Kannada, Hindi and English.</p>
+
+  <div class="card">
+    <div class="mic-wrap">
+      <button id="mic" class="mic" title="Hold to talk">&#127908;</button>
+      <div class="mic-hint" id="micHint">Hold to talk</div>
+      <div class="lang-row" id="langRow">
+        <button data-lang="kn-IN">ಕನ್ನಡ</button>
+        <button data-lang="hi-IN">हिंदी</button>
+        <button data-lang="en-IN" class="active">English</button>
+      </div>
+    </div>
+
+    <div class="typed">
+      <input id="textInput" placeholder="or type here, e.g. will it be hot tomorrow?"
+             autocomplete="off">
+      <button class="primary" id="sendBtn">Ask</button>
+    </div>
+
+    <div class="examples" id="examples">
+      <button>Will it be very hot tomorrow?</button>
+      <button>Which scheme can I get for a new tea stall?</button>
+      <button>What is the EMI for 1.5 lakh over 36 months?</button>
+      <button>I need 2 painters for 3 days at 800 rupees</button>
+      <button>Find me work as a mason</button>
+      <button>Apply for 1.5 lakh</button>
+    </div>
+  </div>
+
+  <div id="answers"></div>
+</section>
+
+<!-- ============================================================ OFFICER -->
+<section id="officer" class="screen">
+  <h2>Officer approvals</h2>
+  <p class="sub">Applications wait here until enough officers sign. The agent cannot approve anything.</p>
+
+  <div class="banner sim">
+    <b>Demo keys.</b> Each officer's signing keypair is generated in this browser and labelled
+    for the demo. A real deployment would use officers' own managed keys, never keys made by
+    this application.
+  </div>
+
+  <div class="card">
+    <div class="row-between">
+      <div>
+        <strong>Signing as</strong>
+        <select id="officerSelect" style="margin-left:8px;padding:7px 10px;border-radius:8px;border:1px solid var(--line);font-family:inherit;font-size:14px"></select>
+      </div>
+      <span class="muted" id="keyStatus">No key yet</span>
+    </div>
+  </div>
+
+  <div id="officerNotices"></div>
+  <div id="applicationList"></div>
+</section>
+
+<!-- ========================================================== DASHBOARD -->
+<section id="dashboard" class="screen">
+  <h2>Financial dashboard</h2>
+  <p class="sub">What was requested, what officers approved, and what would move.</p>
+
+  <div class="banner sim">
+    <b>Simulated money movement.</b> No funds move anywhere in this prototype. Disbursement and
+    repayment figures below show what <em>would</em> happen if this were connected to a real
+    disbursement system.
+  </div>
+
+  <div class="card">
+    <div class="stat-grid" id="statGrid"></div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;font-size:16px">Applications and their approval chains</h3>
+    <div class="scroll"><table id="dashTable"><tbody></tbody></table></div>
+  </div>
+</section>
+
+<!-- ============================================================== AUDIT -->
+<section id="audit" class="screen">
+  <h2>Audit log</h2>
+  <p class="sub">Every action, hash-chained. Editing any past row breaks the chain from that row on.</p>
+
+  <div class="card">
+    <div class="row-between">
+      <div id="chainStatus" class="muted">Checking the chain&hellip;</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="ghost" id="verifyBtn">Verify chain</button>
+        <button class="danger" id="tamperBtn">Tamper with a row</button>
+      </div>
+    </div>
+    <p class="muted" style="margin:12px 0 0">
+      The tamper button edits one past row without recomputing its hash, so you can watch the
+      verifier catch it. It exists because a tamper-evident log should be demonstrated, not asserted.
+    </p>
+  </div>
+
+  <div class="card">
+    <div class="scroll"><table id="auditTable"><tbody></tbody></table></div>
+  </div>
+</section>
+
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>

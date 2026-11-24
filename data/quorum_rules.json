@@ -1,0 +1,60 @@
+{
+  "_note": "Adaptive quorum rules. These bands are OUR OWN DESIGN VALUES for the prototype, not legal or banking thresholds. A real deployment would load the lender's or district's own policy here. Amounts are in paise to keep all money arithmetic in integers.",
+  "_last_reviewed": "2026-11-24",
+  "currency": "INR",
+  "amounts_in": "paise",
+  "bands": [
+    {
+      "id": "band_small",
+      "label": "Below Rs 50,000",
+      "min_paise": 0,
+      "max_paise": 4999999,
+      "signatures_required": 1,
+      "signer_pool_size": 1,
+      "description": "1 of 1"
+    },
+    {
+      "id": "band_medium",
+      "label": "Rs 50,000 to Rs 5,00,000",
+      "min_paise": 5000000,
+      "max_paise": 49999999,
+      "signatures_required": 2,
+      "signer_pool_size": 3,
+      "description": "2 of 3"
+    },
+    {
+      "id": "band_large",
+      "label": "Above Rs 5,00,000",
+      "min_paise": 50000000,
+      "max_paise": null,
+      "signatures_required": 3,
+      "signer_pool_size": 5,
+      "description": "3 of 5"
+    }
+  ],
+  "risk_flags": [
+    {
+      "id": "first_time_applicant",
+      "label": "First application from this applicant",
+      "extra_signatures": 1
+    },
+    {
+      "id": "amount_above_scheme_ceiling",
+      "label": "Requested amount is above the scheme ceiling",
+      "extra_signatures": 1
+    },
+    {
+      "id": "incomplete_documents",
+      "label": "Document checklist is incomplete",
+      "extra_signatures": 1
+    }
+  ],
+  "officers": [
+    {"id": "officer_1", "name": "Officer A (District)", "role": "District MSME officer", "demo_key": true},
+    {"id": "officer_2", "name": "Officer B (Bank)", "role": "Lead bank manager", "demo_key": true},
+    {"id": "officer_3", "name": "Officer C (Taluk)", "role": "Taluk industries officer", "demo_key": true},
+    {"id": "officer_4", "name": "Officer D (Audit)", "role": "Internal audit", "demo_key": true},
+    {"id": "officer_5", "name": "Officer E (Zonal)", "role": "Zonal credit head", "demo_key": true}
+  ],
+  "_demo_key_warning": "Officer keypairs in this prototype are generated in the browser for the demo and are clearly labelled. A real deployment would use officers' own managed keys, never keys created by this application."
+}
