@@ -9,8 +9,8 @@
 <body>
 
 <header class="top">
-  <div class="brand">Arith<span>va</span><small>Speak. The tools decide. Officers sign.</small></div>
-  <nav>
+  <div class="brand">Arith<span>va</span><small>The AI understands. The tools decide. Officers sign.</small></div>
+  <nav aria-label="Arithva screens">
     <button data-screen="citizen" class="active">Citizen</button>
     <button data-screen="officer">Officer</button>
     <button data-screen="dashboard">Dashboard</button>
@@ -23,37 +23,66 @@
 <!-- ============================================================ CITIZEN -->
 <section id="citizen" class="screen active">
   <h2>Ask in your language</h2>
-  <p class="sub">Hold the button and speak, or type below. Kannada, Hindi and English.</p>
+  <p class="sub">Tap the mic and speak, or type. Every number comes from a tool.</p>
 
-  <div class="card">
+  <div class="card citizen-input">
     <div class="mic-wrap">
-      <button id="mic" class="mic" title="Hold to talk">&#127908;</button>
-      <div class="mic-hint" id="micHint">Hold to talk</div>
-      <div id="voiceProvider" style="margin-top:8px"></div>
       <div class="lang-row" id="langRow">
         <button data-lang="kn-IN">ಕನ್ನಡ</button>
         <button data-lang="hi-IN">हिंदी</button>
         <button data-lang="en-IN" class="active">English</button>
       </div>
+      <button type="button" id="mic" class="mic" title="Tap to speak" aria-label="Tap to speak" aria-pressed="false">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <rect x="9" y="2" width="6" height="13" rx="3" fill="currentColor" stroke="none"/>
+          <path d="M5 10a7 7 0 0 0 14 0M12 17v4m-3 0h6"/>
+        </svg>
+      </button>
+      <div class="mic-hint" id="micHint">Tap to speak</div>
+      <div id="voiceProvider" class="voice-provider"><span class="chip syn">Voice: ready</span></div>
+      <div id="micError" role="alert" hidden></div>
     </div>
 
-    <div class="typed">
-      <input id="textInput" placeholder="or type here, e.g. will it be hot tomorrow?"
-             autocomplete="off">
-      <button class="primary" id="sendBtn">Ask</button>
-    </div>
+    <div id="citizenControls">
+      <div class="typed">
+        <input id="textInput" placeholder="or type here, e.g. will it be hot tomorrow?"
+               autocomplete="off" aria-label="Type a question">
+        <button class="primary" id="sendBtn">Ask</button>
+      </div>
 
-    <div class="examples" id="examples">
-      <button>Will it be very hot tomorrow?</button>
-      <button>Which scheme can I get for a new tea stall?</button>
-      <button>What is the EMI for 1.5 lakh over 36 months?</button>
-      <button>I need 2 painters for 3 days at 800 rupees</button>
-      <button>Find me work as a mason</button>
-      <button>Apply for 1.5 lakh</button>
-    </div>
+      <p class="demo-label">Demo path</p>
+      <div class="examples" id="examples">
+        <button>Will it be very hot tomorrow?</button>
+        <button>Which scheme can I get for a new tea stall?</button>
+        <button>What is the EMI for 1.5 lakh over 36 months?</button>
+        <button>I need 2 painters for 3 days at 800 rupees</button>
+        <button>Find me work as a mason</button>
+        <button>Apply for 1.5 lakh</button>
+      </div>
+      </div>
   </div>
 
+  <div id="micStatus" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
   <div id="answers"></div>
+  <div id="composer" class="composer" hidden>
+    <div class="composer-inner">
+      <div class="composer-voice">
+        <button type="button" id="composerMic" class="mic mic-small" title="Tap to speak" aria-label="Tap to speak" aria-pressed="false">
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <rect x="9" y="2" width="6" height="13" rx="3" fill="currentColor" stroke="none"/>
+          <path d="M5 10a7 7 0 0 0 14 0M12 17v4m-3 0h6"/>
+        </svg>
+        </button>
+        <div>
+          <div class="mic-hint" id="composerMicHint">Tap to speak</div>
+          <div id="composerVoiceProvider" class="voice-provider"><span class="chip syn">Voice: ready</span></div>
+        </div>
+      </div>
+      <div id="composerControls">
+        <details id="composerDemo"><summary>Demo path</summary></details>
+      </div>
+    </div>
+  </div>
 </section>
 
 <!-- ============================================================ OFFICER -->
