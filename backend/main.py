@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response
@@ -19,7 +20,12 @@ from .tools import (
     approvals_tool, jobs_tool, loan_tool, scheme_tool, speech_tool, weather_tool,
 )
 
-FRONTEND = Path(__file__).resolve().parents[1] / "frontend"
+ROOT = Path(__file__).resolve().parents[1]
+FRONTEND = ROOT / "frontend"
+
+# Optional keys. A missing .env is fine, and variables already set in the
+# environment take precedence over the file.
+load_dotenv(ROOT / ".env")
 
 app = FastAPI(
     title="Arithva API",
