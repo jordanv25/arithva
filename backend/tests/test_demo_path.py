@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import base64
 import json
+from datetime import date
 
 import pytest
 from cryptography.hazmat.primitives import hashes
@@ -17,8 +18,9 @@ from cryptography.hazmat.primitives.asymmetric import ec, utils as asym_utils
 
 from backend import audit, db
 from backend.agent import classify, handle
-from backend.tools import approvals_tool, jobs_tool, loan_tool, scheme_tool
+from backend.tools import approvals_tool, jobs_tool, loan_tool, scheme_tool, weather_tool
 from backend.tools.money import compute_emi, rupees_to_paise, speak_rupees
+from backend.tools.registry import load_data
 
 
 @pytest.fixture(autouse=True)
@@ -66,6 +68,46 @@ def test_a_tool_that_cannot_answer_says_so():
 def test_wage_below_minimum_is_flagged():
     result = jobs_tool.post_job("e1", "mason", 1, 2, 300, "Super Market")
     assert result["value"]["wage_check"]["below_minimum"] is True
+
+
+# ------------------------------------------------------------- local events
+
+def test_event_windows_come_from_the_data_file():
+    """No event window is hardcoded in Python.
+
+    These used to live in a dict inside weather_tool, which silently stranded
+    every event missing from that dict. Adding an event must be a data change
+    and nothing else.
+    """
+    events = load_data("events_kalaburagi.json")["events"]
+    for event in events:
+        months = event.get("active_months")
+        if not months:
+            continue
+        hits = weather_tool._season_events(date(2027, months[0], 15))
+        assert event["name"] in [hit["name"] for hit in hits], (
+            f"{event['id']} has active_months but never matches"
+        )
+
+
+def test_events_with_moving_dates_are_listed_but_never_given_a_date():
+    """The Urs, the Jatra and Ramzan move. We say so instead of guessing.
+
+    An invented Gregorian date would be exactly the fabricated figure the
+    project refuses to produce, so these stay out of the seasonal matches and
+    carry instructions for confirming them instead.
+    """
+    moving = weather_tool._events_with_unconfirmed_dates()
+    assert moving, "the moving-date events have gone missing from the data file"
+    for event in moving:
+        assert event["confirm_by"], f"{event['name']} has no way to confirm its date"
+
+    moving_names = {event["name"] for event in moving}
+    for month in range(1, 13):
+        seasonal = {hit["name"] for hit in weather_tool._season_events(date(2027, month, 15))}
+        assert not (seasonal & moving_names), (
+            f"month {month} placed a moving-date event on the calendar"
+        )
 
 
 # ------------------------------------------------------------------ agent
