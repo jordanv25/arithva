@@ -18,8 +18,17 @@ def _matches(scheme: dict, profile: dict) -> tuple[bool, list[str]]:
     eligible = True
 
     age = profile.get("age")
-    if "min_age" in rules and age is not None:
-        if age < rules["min_age"]:
+    if "min_age" in rules:
+        if age is None:
+            # An unknown age is not a passing age. Saying "age 30 meets the
+            # minimum" when nobody gave an age states a fact about the
+            # applicant that we invented, which is the one thing this project
+            # refuses to do. Ask instead.
+            reasons.append(
+                f"This scheme needs you to be at least {rules['min_age']}. "
+                "You have not told me your age yet, so I have not checked it."
+            )
+        elif age < rules["min_age"]:
             eligible = False
             reasons.append(f"Minimum age for this scheme is {rules['min_age']}; you gave {age}.")
         else:

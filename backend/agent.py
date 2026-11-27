@@ -321,7 +321,10 @@ def _call_tool(intent: Intent, context: dict) -> dict:
 
     if intent.name == "scheme":
         profile = {
-            "age": context.get("age", 30),
+            # No default. An unknown age is not 30, and saying "age 30 meets
+            # the minimum" states a fact about the applicant that nobody gave
+            # us. scheme_tool asks for it instead.
+            "age": context.get("age"),
             "trade": context.get("trade"),
             "business_status": context.get("business_status", "new"),
             "amount_needed_inr": slots.get("amount_needed_inr") or context.get("amount_needed_inr"),

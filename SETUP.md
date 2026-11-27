@@ -52,6 +52,15 @@ Open **http://localhost:8001**.
 `--reload` restarts the server whenever you save a file, so the loop is: edit,
 save, refresh the browser.
 
+Files in `data/` are re-read on every call, so a rule change shows up on the
+next question without restarting anything.
+
+**If a code change does not show up,** the reloader has probably stalled. On
+Windows it sometimes logs `WatchFiles detected changes ... Reloading` and then
+never finishes, leaving the old code serving with no error. Stop it with
+Ctrl+C and start it again. If it keeps happening, drop `--reload` and restart
+by hand — slower, but it never lies to you about which code is running.
+
 Use `python -m uvicorn`, not bare `uvicorn`. The `python -m` form always uses
 the virtual environment's Python; bare `uvicorn` can silently pick up a
 different installation and give you confusing import errors.
