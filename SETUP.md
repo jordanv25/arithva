@@ -83,7 +83,7 @@ python -m pytest backend/tests/ -q
 
 ## Try the demo path
 
-1. **Citizen** tab. Click a sample question, or hold the mic button and speak.
+1. **Citizen** tab. Click a sample question, or tap the mic, speak, and tap again to finish.
 2. Ask the weather, then a scheme, then an EMI. Look at the source line under
    each answer.
 3. Say *"I need 2 painters for 3 days at 800 rupees"*. It reads the action back
