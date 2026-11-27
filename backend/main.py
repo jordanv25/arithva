@@ -332,4 +332,21 @@ def health() -> dict:
     return {"status": "ok", "service": "arithva"}
 
 
-app.mount("/", StaticFiles(directory=FRONTEND, html=True), name="frontend")
+class NoCacheStaticFiles(StaticFiles):
+    """Serve the frontend with caching off.
+
+    StaticFiles sends only etag and last-modified, no cache-control. With no
+    cache-control a browser is free to cache heuristically, and Chrome does:
+    it kept serving a previous app.js and styles.css without asking the server
+    at all, so a merged UI change looked like it had not landed. Cost an hour
+    before a demo. The frontend is a few files served off localhost, so there
+    is nothing to gain by caching it.
+    """
+
+    def file_response(self, *args, **kwargs):
+        response = super().file_response(*args, **kwargs)
+        response.headers["Cache-Control"] = "no-store, must-revalidate"
+        return response
+
+
+app.mount("/", NoCacheStaticFiles(directory=FRONTEND, html=True), name="frontend")
