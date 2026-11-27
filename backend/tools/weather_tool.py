@@ -44,21 +44,16 @@ def _advice_for(temp_c: float | None, rain_pct: float | None) -> list[str]:
 
 
 def _season_events(target: date) -> list[dict]:
-    """Events whose typical window covers the target date.
+    """Events whose window covers the target date.
 
-    Month windows only. Dates that move with the moon or a committee are
-    returned with that uncertainty stated, never as a fixed date.
+    The windows live in the data file, not here, so adding an event is a data
+    change. Month granularity only.
     """
     events = load_data("events_kalaburagi.json")["events"]
     month = target.month
-    windows = {
-        "marriage_season": {11, 12, 1, 2, 4, 5},
-        "tur_harvest": {12, 1, 2},
-        "summer_heat": {4, 5, 6},
-    }
     hits = []
     for event in events:
-        months = windows.get(event["id"])
+        months = event.get("active_months")
         if months and month in months:
             hits.append({
                 "name": event["name"],
@@ -67,6 +62,27 @@ def _season_events(target: date) -> list[dict]:
                 "areas_affected": event["areas_affected"],
             })
     return hits
+
+
+def _events_with_unconfirmed_dates() -> list[dict]:
+    """Events we know happen but cannot place on a calendar.
+
+    The Urs and Ramzan move with the lunar calendar; the Jatra is set by a
+    temple committee. Guessing a Gregorian date for any of them would be
+    exactly the invented number this project refuses to produce, so they are
+    listed apart, with how to confirm each one.
+    """
+    events = load_data("events_kalaburagi.json")["events"]
+    return [
+        {
+            "name": event["name"],
+            "typical_window": event["typical_window"],
+            "business_effect": event["business_effect"],
+            "confirm_by": event.get("confirm_by"),
+        }
+        for event in events
+        if event.get("active_months") is None
+    ]
 
 
 def forecast(days_ahead: int = 1, lat: float | None = None, lon: float | None = None,
@@ -121,6 +137,7 @@ def forecast(days_ahead: int = 1, lat: float | None = None, lon: float | None = 
             "rain_probability_pct": rain_pct,
             "advice": _advice_for(temp_max, rain_pct),
             "local_events": _season_events(target),
+            "events_with_unconfirmed_dates": _events_with_unconfirmed_dates(),
         },
         source="Open-Meteo forecast; advice bands from Arithva's curated rules file",
         source_url="https://open-meteo.com/",

@@ -10,15 +10,19 @@ from __future__ import annotations
 
 import base64
 import json
+import os
+from datetime import date
 
 import pytest
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec, utils as asym_utils
 
 from backend import audit, db
-from backend.agent import classify, handle
-from backend.tools import approvals_tool, jobs_tool, loan_tool, scheme_tool
+from backend.agent import TRADES, classify, handle
+from backend.tools import approvals_tool, jobs_tool, loan_tool, scheme_tool, weather_tool
 from backend.tools.money import compute_emi, rupees_to_paise, speak_rupees
+from backend.tools import registry
+from backend.tools.registry import load_data
 
 
 @pytest.fixture(autouse=True)
@@ -66,6 +70,87 @@ def test_a_tool_that_cannot_answer_says_so():
 def test_wage_below_minimum_is_flagged():
     result = jobs_tool.post_job("e1", "mason", 1, 2, 300, "Super Market")
     assert result["value"]["wage_check"]["below_minimum"] is True
+
+
+def test_a_changed_data_file_is_picked_up_without_a_restart(tmp_path, monkeypatch):
+    """Editing a rule must take effect, not sit behind a stale cache.
+
+    The cache used to hold a file forever once read, so a corrected wage or
+    scheme rule looked like it had been ignored until someone restarted the
+    server. Most of the work on this project is editing data/, so that cost
+    more than the caching saved.
+    """
+    monkeypatch.setattr(registry, "DATA_DIR", tmp_path)
+    monkeypatch.setattr(registry, "_cache", {})
+    rules = tmp_path / "rules.json"
+
+    rules.write_text(json.dumps({"min_wage_inr": 500}), encoding="utf-8")
+    assert registry.load_data("rules.json")["min_wage_inr"] == 500
+
+    rules.write_text(json.dumps({"min_wage_inr": 650}), encoding="utf-8")
+    stat = rules.stat()
+    os.utime(rules, ns=(stat.st_atime_ns, stat.st_mtime_ns + 1_000_000_000))
+    assert registry.load_data("rules.json")["min_wage_inr"] == 650
+
+
+def test_every_trade_the_agent_hears_has_a_wage_category():
+    """The agent's trade list and the wage table must not drift apart.
+
+    agent.TRADES is hardcoded, while the wage categories live in
+    data/wage_table.json. A trade in one and not the other fails quietly: the
+    agent hears "I need two barbers", posts the job, and the wage check
+    silently skips it, so an underpaid offer goes unflagged. That is the one
+    thing the Jobs tool exists to catch.
+
+    The real fix is for agent.py to read this list from the data file. Until
+    then, this test makes the drift loud.
+    """
+    categories = load_data("wage_table.json")["trade_to_category"]
+    missing = [trade for trade in TRADES if trade not in categories]
+    assert not missing, (
+        f"agent.TRADES has {missing}, which data/wage_table.json cannot price, "
+        "so offers for them are never wage-checked"
+    )
+
+
+# ------------------------------------------------------------- local events
+
+def test_event_windows_come_from_the_data_file():
+    """No event window is hardcoded in Python.
+
+    These used to live in a dict inside weather_tool, which silently stranded
+    every event missing from that dict. Adding an event must be a data change
+    and nothing else.
+    """
+    events = load_data("events_kalaburagi.json")["events"]
+    for event in events:
+        months = event.get("active_months")
+        if not months:
+            continue
+        hits = weather_tool._season_events(date(2027, months[0], 15))
+        assert event["name"] in [hit["name"] for hit in hits], (
+            f"{event['id']} has active_months but never matches"
+        )
+
+
+def test_events_with_moving_dates_are_listed_but_never_given_a_date():
+    """The Urs, the Jatra and Ramzan move. We say so instead of guessing.
+
+    An invented Gregorian date would be exactly the fabricated figure the
+    project refuses to produce, so these stay out of the seasonal matches and
+    carry instructions for confirming them instead.
+    """
+    moving = weather_tool._events_with_unconfirmed_dates()
+    assert moving, "the moving-date events have gone missing from the data file"
+    for event in moving:
+        assert event["confirm_by"], f"{event['name']} has no way to confirm its date"
+
+    moving_names = {event["name"] for event in moving}
+    for month in range(1, 13):
+        seasonal = {hit["name"] for hit in weather_tool._season_events(date(2027, month, 15))}
+        assert not (seasonal & moving_names), (
+            f"month {month} placed a moving-date event on the calendar"
+        )
 
 
 # ------------------------------------------------------------------ agent

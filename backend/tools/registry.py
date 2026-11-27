@@ -17,15 +17,26 @@ from typing import Any
 
 DATA_DIR = Path(__file__).resolve().parents[2] / "data"
 
-_cache: dict[str, Any] = {}
+# filename -> (mtime_ns when read, parsed contents)
+_cache: dict[str, tuple[int, Any]] = {}
 
 
 def load_data(filename: str) -> dict:
-    """Load a JSON data file, cached after first read."""
-    if filename not in _cache:
-        with open(DATA_DIR / filename, encoding="utf-8") as handle:
-            _cache[filename] = json.load(handle)
-    return _cache[filename]
+    """Load a JSON data file, re-reading it whenever it changes on disk.
+
+    Cached on the file's modification time rather than forever. Most of the
+    work on this project is editing the files in data/, and a cache that never
+    let go meant a rule change only took effect after a server restart, with
+    no sign that anything was stale. Statting a file per call is nothing next
+    to the confusion that caused.
+    """
+    path = DATA_DIR / filename
+    mtime = path.stat().st_mtime_ns
+    cached = _cache.get(filename)
+    if cached is None or cached[0] != mtime:
+        with open(path, encoding="utf-8") as handle:
+            _cache[filename] = (mtime, json.load(handle))
+    return _cache[filename][1]
 
 
 def now_iso() -> str:

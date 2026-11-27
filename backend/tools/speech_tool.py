@@ -30,7 +30,7 @@ ELEVENLABS_URL = "https://api.elevenlabs.io/v1/text-to-speech"
 # Overridable in .env. These are ElevenLabs' published defaults; VERIFY the
 # voice id and model in your dashboard, and listen to a sample in each language
 # you plan to demo before relying on them.
-DEFAULT_VOICE_ID = "21m00Tcm4TlvDq8ikWAM"
+DEFAULT_VOICE_ID = "JBFqnCBsd6RMkjVDRZzb"  # George; works via the API on the free plan
 DEFAULT_MODEL_ID = "eleven_multilingual_v2"
 
 # ---------------------------------------------------------------------- Polly

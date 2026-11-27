@@ -1,7 +1,7 @@
 {
-  "_note": "Curated local events calendar for Kalaburagi, used by the Weather + Local Pulse tool to turn a forecast into business advice. Dates marked approximate move with the moon sighting or the local committee's announcement; the tool says so in its output.",
-  "_status": "CURATED DEMO DATA - dates need confirming locally before any real use",
-  "_last_reviewed": "2026-11-24",
+  "_note": "Curated local calendar for Kalaburagi, used by the Weather + Local Pulse tool to turn a forecast into business advice. Each event carries its own active months, so the tool reads its windows from here rather than hardcoding them. Events whose date moves with the moon or a temple committee set active_months to null and say how to confirm the date; the tool surfaces those separately rather than pretending to know when they fall.",
+  "_status": "CURATED DEMO DATA - every window below needs confirming locally before any real use",
+  "_last_reviewed": "2026-11-27",
   "district": "Kalaburagi",
   "state": "Karnataka",
   "events": [
@@ -9,51 +9,127 @@
       "id": "urs_bande_nawaz",
       "name": "Urs of Khwaja Bande Nawaz",
       "type": "religious gathering",
-      "typical_window": "15 to 17 Dhu al-Qadah (Islamic calendar)",
+      "typical_window": "15 to 17 Zul-Qa'dah (Islamic calendar)",
+      "active_months": null,
+      "moves_each_year": true,
       "scale": "very large, draws pilgrims from several states",
       "areas_affected": ["Dargah area", "Station Road", "Super Market"],
       "business_effect": "Large footfall for food, water, flowers, transport and lodging. Traffic diversions near the dargah.",
-      "date_confidence": "approximate, moves with the moon sighting"
+      "date_confidence": "NOT CONFIRMED. Falls on the Islamic lunar calendar, so it moves about eleven days earlier each Gregorian year.",
+      "confirm_by": "The Jhila Mubarak procession is held one month before the Urs begins, so the local date is known from then. The dargah management and the district administration announce the dates each year.",
+      "confidence": "Calendar basis and the Jhila Mubarak timing are from press coverage of past years. No Gregorian date for the coming year has been confirmed, and none is recorded here on purpose."
     },
     {
       "id": "sharanabasaveshwar_jatra",
       "name": "Sharanabasaveshwar Jatra",
       "type": "temple festival",
-      "typical_window": "a few days after Holi",
+      "typical_window": "a few days after Holi, so usually March",
+      "active_months": null,
+      "moves_each_year": true,
       "scale": "large, district-wide",
       "areas_affected": ["Temple area", "City centre"],
       "business_effect": "Heavy footfall for food, sweets, flowers and small goods.",
-      "date_confidence": "approximate, set by the temple committee each year"
+      "date_confidence": "NOT CONFIRMED. Set by the temple committee each year, anchored to Holi.",
+      "confirm_by": "Ask the Sharanabasaveshwar temple committee, or check the district administration's festival list for the year.",
+      "confidence": "Team knowledge, not confirmed against a published calendar."
     },
     {
       "id": "marriage_season",
       "name": "Marriage season",
       "type": "seasonal demand",
       "typical_window": "November to February, and again around April and May",
+      "active_months": [11, 12, 1, 2, 4, 5],
+      "moves_each_year": false,
       "scale": "district-wide",
       "areas_affected": ["District-wide"],
       "business_effect": "Demand rises for tailors, caterers, painters, electricians, decorators, transport and tent houses.",
-      "date_confidence": "seasonal pattern, not a fixed date"
+      "date_confidence": "seasonal pattern, not a fixed date",
+      "confirm_by": "Individual muhurta dates follow the Hindu almanac; the broad season is stable year to year.",
+      "confidence": "Broad seasonal pattern, team knowledge. The months are our own judgement, not an official source."
     },
     {
       "id": "tur_harvest",
       "name": "Tur (red gram) harvest and mandi arrivals",
       "type": "agricultural season",
       "typical_window": "December to February",
+      "active_months": [12, 1, 2],
+      "moves_each_year": false,
       "scale": "district-wide, Kalaburagi is a major tur belt",
       "areas_affected": ["APMC yard", "Rural taluks"],
       "business_effect": "Cash flows into rural households; mandi area footfall rises; labour demand peaks for harvesting and loading.",
-      "date_confidence": "seasonal, shifts with the monsoon"
+      "date_confidence": "seasonal, shifts with the monsoon",
+      "confirm_by": "APMC Kalaburagi arrival data shows the actual peak for a given year.",
+      "confidence": "Kalaburagi's status as a tur belt is well established. The exact months shift with the monsoon and are our own judgement."
     },
     {
       "id": "summer_heat",
       "name": "Peak summer heat",
       "type": "weather season",
       "typical_window": "April to early June",
+      "active_months": [4, 5, 6],
+      "moves_each_year": false,
       "scale": "district-wide",
       "areas_affected": ["District-wide"],
       "business_effect": "Cold drinks, buttermilk, water and shade sell well. Outdoor work shifts to early morning and evening. Afternoon footfall drops.",
-      "date_confidence": "seasonal"
+      "date_confidence": "seasonal",
+      "confirm_by": "IMD seasonal outlook for North Interior Karnataka.",
+      "confidence": "Well-established seasonal pattern for the region."
+    },
+    {
+      "id": "monsoon",
+      "name": "Southwest monsoon",
+      "type": "weather season",
+      "typical_window": "June to September",
+      "active_months": [6, 7, 8, 9],
+      "moves_each_year": false,
+      "scale": "district-wide",
+      "areas_affected": ["District-wide"],
+      "business_effect": "Footfall drops on wet days and outdoor work stops. Demand rises for tea, snacks, umbrellas and footwear repair. Perishable stock spoils faster.",
+      "date_confidence": "seasonal; onset and withdrawal shift by a week or two each year",
+      "confirm_by": "IMD onset and withdrawal dates for North Interior Karnataka.",
+      "confidence": "ADDED 2026-11-27, not yet confirmed locally. The monsoon season for the region is well established; the business effect is our own judgement."
+    },
+    {
+      "id": "school_reopening",
+      "name": "School reopening",
+      "type": "seasonal demand",
+      "typical_window": "late May into June",
+      "active_months": [5, 6],
+      "moves_each_year": false,
+      "scale": "district-wide",
+      "areas_affected": ["District-wide"],
+      "business_effect": "Demand rises sharply for tailors stitching uniforms, and for stationery, bags, shoes and barbers. Households spend early in the month.",
+      "date_confidence": "set by the state education department each year",
+      "confirm_by": "Karnataka Department of School Education announces the reopening date each year.",
+      "confidence": "ADDED 2026-11-27, not yet confirmed locally. Needs the actual state reopening date."
+    },
+    {
+      "id": "deepavali",
+      "name": "Deepavali season",
+      "type": "festival season",
+      "typical_window": "October or November, moving with the Hindu calendar",
+      "active_months": [10, 11],
+      "moves_each_year": true,
+      "scale": "district-wide",
+      "areas_affected": ["District-wide", "City centre"],
+      "business_effect": "The strongest retail weeks of the year. Sweets, clothes, lamps, paint and gifts sell hard. Painters and cleaners are booked out beforehand.",
+      "date_confidence": "the exact dates move each year within these two months",
+      "confirm_by": "The Karnataka state holiday list fixes the dates for a given year.",
+      "confidence": "ADDED 2026-11-27, not yet confirmed locally. The two-month window is reliable; the exact dates are not recorded here."
+    },
+    {
+      "id": "ramzan",
+      "name": "Ramzan and Eid",
+      "type": "religious season",
+      "typical_window": "the month of Ramadan, ending at Eid al-Fitr (Islamic calendar)",
+      "active_months": null,
+      "moves_each_year": true,
+      "scale": "large, Kalaburagi has a substantial Muslim population",
+      "areas_affected": ["District-wide", "Dargah area", "Old city"],
+      "business_effect": "Evening trade rises sharply around iftar: fruit, dates, snacks and cooked food. Daytime food trade falls. Clothes and sweets peak in the days before Eid.",
+      "date_confidence": "NOT CONFIRMED. Islamic lunar calendar, so it moves about eleven days earlier each Gregorian year and Eid depends on the moon sighting.",
+      "confirm_by": "Local mosque committees and the state holiday list confirm Eid once the moon is sighted.",
+      "confidence": "ADDED 2026-11-27, not yet confirmed locally. The demand pattern is our own judgement; no Gregorian dates are recorded here on purpose."
     }
   ],
   "advice_rules": {
@@ -70,5 +146,6 @@
     ]
   },
   "source": "Local calendar compiled by the team; weather thresholds are our own design values",
-  "confidence": "Event dates must be confirmed locally. Advice bands are our own rules, not official guidance."
+  "source_url": null,
+  "confidence": "Event windows must be confirmed locally. Advice bands are our own rules, not official guidance. Events added on 2026-11-27 are marked ADDED in their own confidence field and have had no local review at all."
 }
