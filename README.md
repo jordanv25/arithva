@@ -123,7 +123,7 @@ works in every browser.
 
 ### The demo path
 
-1. **Citizen** tab → press a sample question or hold the mic and speak.
+1. **Citizen** tab → choose a sample question or tap the mic, speak, and tap again to finish.
 2. Ask about the weather, then a scheme, then an EMI. Note the source line
    under every answer.
 3. Say *"I need 2 painters for 3 days at 800 rupees"* → it reads the action

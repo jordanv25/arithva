@@ -1,6 +1,6 @@
 /* Arithva front end.
  *
- * Three screens over one API. Two browser capabilities do real work here:
+ * Four screens over one API. Two browser capabilities do real work here:
  * the Web Speech API for listening and speaking, and the Web Crypto API for
  * officer signatures. Both need HTTPS (or localhost).
  */
@@ -30,141 +30,215 @@ $$('nav button').forEach((btn) => {
 /* ------------------------------------------------------------------ speech */
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-let recognition = null;
+const micButtons = [$('#mic'), $('#composerMic')];
+const micHints = [$('#micHint'), $('#composerMicHint')];
+const micLabels = {
+  idle: 'Tap to speak',
+  listening: 'Listening… tap to stop',
+  thinking: 'Thinking…',
+  speaking: 'Speaking… tap to interrupt',
+};
+let micState = 'idle';
+let listeningSession = null;
+let turnInFlight = false;
 
-if (SpeechRecognition) {
-  recognition = new SpeechRecognition();
-  recognition.continuous = false;
-  recognition.interimResults = false;
-
-  recognition.onresult = (event) => {
-    const said = event.results[0][0].transcript;
-    $('#textInput').value = said;
-    ask(said);
-  };
-  recognition.onerror = (event) => {
-    setMicState(false);
-    // A refused microphone or a failed recognition is reported, not hidden.
-    renderNotice(`Could not hear that (${event.error}). You can type instead.`);
-  };
-  recognition.onend = () => setMicState(false);
-} else {
-  $('#micHint').textContent = 'Voice needs Chrome or Edge. Typing works everywhere.';
+function setMicState(state) {
+  micState = state;
+  const label = micLabels[state];
+  micButtons.forEach((button) => {
+    button.dataset.state = state;
+    button.setAttribute('aria-pressed', String(state === 'listening'));
+    button.setAttribute('aria-disabled', String(state === 'thinking' || !SpeechRecognition));
+    button.setAttribute('aria-label', label);
+    button.title = label;
+  });
+  micHints.forEach((hint) => { hint.textContent = label; });
+  $('#micStatus').textContent = label;
 }
 
-function setMicState(listening) {
-  $('#mic').classList.toggle('listening', listening);
-  $('#micHint').textContent = listening ? 'Listening… release to send' : 'Hold to talk';
+function showMicError(message) {
+  const error = $('#micError');
+  error.hidden = !message;
+  error.textContent = message;
+}
+
+function finishListening(session) {
+  if (session !== listeningSession) return false;
+  listeningSession = null;
+  clearTimeout(session.timer);
+  return true;
+}
+
+function cancelListening() {
+  const session = listeningSession;
+  if (!session || !finishListening(session)) return;
+  session.recognition.abort();
+  setMicState('idle');
+}
+
+function stopListening(session) {
+  if (session !== listeningSession || micState !== 'listening') return;
+  clearTimeout(session.timer);
+  setMicState('thinking');
+  // Allow a final result after stop(), even on a slow speech service.
+  session.timer = setTimeout(() => {
+    cancelListening();
+    showMicError('No speech detected. Tap to try again or type your question.');
+  }, 2000);
+  try {
+    session.recognition.stop();
+  } catch (_) {
+    cancelListening();
+    showMicError('Could not finish listening. Tap to try again or type your question.');
+  }
 }
 
 function startListening() {
-  if (!recognition) return;
+  if (!SpeechRecognition) return;
+  stopSpeaking();
+  showMicError('');
+  const recognition = new SpeechRecognition();
+  const session = { recognition, timer: null };
+  listeningSession = session;
   recognition.lang = lang;
+  recognition.continuous = false;
+  recognition.interimResults = false;
+  recognition.onresult = (event) => {
+    const text = Array.from(event.results)
+      .filter((result) => result.isFinal)
+      .map((result) => result[0].transcript.trim())
+      .join(' ');
+    if (!text || !finishListening(session)) return;
+    if (micState === 'listening') {
+      try { recognition.stop(); } catch (_) { /* already stopping */ }
+    }
+    $('#textInput').value = text;
+    submitInput(text);
+  };
+  recognition.onspeechend = () => stopListening(session);
+  recognition.onend = () => {
+    if (!finishListening(session)) return;
+    setMicState('idle');
+    showMicError('No speech detected. Tap to try again or type your question.');
+  };
+  recognition.onerror = ({ error }) => {
+    if (!finishListening(session)) return;
+    setMicState('idle');
+    const denied = error === 'not-allowed' || error === 'service-not-allowed';
+    showMicError(denied ? 'Microphone access is blocked. Allow it in your browser or type your question.'
+      : error === 'no-speech' ? 'No speech detected. Tap to try again or type your question.'
+      : 'Could not listen. Tap to try again or type your question.');
+  };
+  setMicState('listening');
   try {
     recognition.start();
-    setMicState(true);
-  } catch (_) { /* already running */ }
+    session.timer = setTimeout(() => stopListening(session), 15000);
+  } catch (_) {
+    finishListening(session);
+    setMicState('idle');
+    showMicError('Could not start the microphone. Tap to try again or type your question.');
+  }
 }
 
-function stopListening() {
-  if (recognition) { try { recognition.stop(); } catch (_) {} }
-}
+micButtons.forEach((button) => {
+  button.addEventListener('click', () => {
+    if (!SpeechRecognition || micState === 'thinking') return;
+    if (micState === 'listening') stopListening(listeningSession);
+    else startListening();
+  });
+});
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && listeningSession) cancelListening();
+});
+setMicState('idle');
+if (!SpeechRecognition) showMicError('For voice input, open Arithva in Chrome or Edge. You can type below.');
 
-const mic = $('#mic');
-mic.addEventListener('mousedown', startListening);
-mic.addEventListener('mouseup', stopListening);
-mic.addEventListener('touchstart', (e) => { e.preventDefault(); startListening(); });
-mic.addEventListener('touchend', (e) => { e.preventDefault(); stopListening(); });
-
-/* Speaking: try the server's voice provider, fall back to the browser.
- *
- * The fallback is not error handling bolted on, it is the design. Arithva must
- * work with no API key, so a missing key, a quota limit or a slow network
- * changes how the answer sounds and nothing else.
- */
-
-let currentAudio = null;
-let voiceProviderConfigured = false;   // set once, on load
+/* Try hosted voice, then browser voice. Cancelling a reply also cancels its
+ * in-flight request, so a response cannot start playing over the next query. */
+let playback = null;
+let voiceProviderConfigured = false;
+const voiceStatus = (async () => {
+  try {
+    const response = await fetch(API + '/api/speech/status', { signal: AbortSignal.timeout(2500) });
+    const data = await response.json();
+    voiceProviderConfigured = data.value.configured === true;
+  } catch (_) {
+    voiceProviderConfigured = false;
+  }
+})();
 
 async function speak(text) {
-  if (!text) return;
-  stopSpeaking();
-
-  // Skip the round trip entirely when no provider is configured. Without this
-  // every utterance logs a 503 in the console, which looks like a fault and
-  // is not one.
-  if (!voiceProviderConfigured) {
-    browserSpeak(text);
-    showVoiceProvider('browser');
+  if (!text) {
+    setMicState('idle');
     return;
   }
+  stopSpeaking();
+  const reply = { controller: new AbortController(), audio: null, url: null };
+  playback = reply;
+  setMicState('speaking');
+  const finish = () => { if (playback === reply) stopSpeaking(); };
+  await voiceStatus;
+  if (playback !== reply) return;
 
-  try {
-    const response = await fetch(API + '/api/speak', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, language: lang }),
-    });
-
-    if (response.ok) {
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      currentAudio = new Audio(url);
-      currentAudio.onended = () => URL.revokeObjectURL(url);
-      await currentAudio.play();
-      // The server says which provider actually answered, which is not always
-      // the first one in the chain.
-      showVoiceProvider(response.headers.get('X-Arithva-Voice-Provider') || 'server');
-      return;
+  if (voiceProviderConfigured) {
+    try {
+      const response = await fetch(API + '/api/speak', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, language: lang }),
+        signal: reply.controller.signal,
+      });
+      if (response.ok) {
+        const blob = await response.blob();
+        if (playback !== reply) return;
+        reply.url = URL.createObjectURL(blob);
+        reply.audio = new Audio(reply.url);
+        reply.audio.onended = finish;
+        reply.audio.onerror = finish;
+        await reply.audio.play();
+        if (playback === reply) {
+          showVoiceProvider(response.headers.get('X-Arithva-Voice-Provider') || 'server');
+        }
+        return;
+      }
+    } catch (_) {
+      // A hosted failure uses the browser voice unless the user interrupted.
     }
-    // 503 means "use the browser voice", which is expected, not a failure.
-  } catch (_) {
-    // Network refused the request entirely. Same handling.
   }
 
-  browserSpeak(text);
-  showVoiceProvider('browser');
-}
-
-function browserSpeak(text) {
-  if (!window.speechSynthesis) return;
-  window.speechSynthesis.cancel();
+  if (playback !== reply) return;
+  if (!window.speechSynthesis) {
+    finish();
+    return;
+  }
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = lang;
   utterance.rate = 0.95;
+  utterance.onstart = () => { if (playback === reply) showVoiceProvider('browser'); };
+  utterance.onend = finish;
+  utterance.onerror = finish;
   window.speechSynthesis.speak(utterance);
 }
 
 function stopSpeaking() {
+  const reply = playback;
+  if (!reply) return;
+  playback = null;
+  reply.controller.abort();
+  if (reply.audio) reply.audio.pause();
+  if (reply.url) URL.revokeObjectURL(reply.url);
   if (window.speechSynthesis) window.speechSynthesis.cancel();
-  if (currentAudio) {
-    currentAudio.pause();
-    currentAudio = null;
-  }
+  if (micState === 'speaking') setMicState('idle');
 }
 
 const VOICE_LABELS = { elevenlabs: 'ElevenLabs', polly: 'Amazon Polly', browser: 'browser' };
 
 function showVoiceProvider(name) {
-  const el = $('#voiceProvider');
-  if (!el) return;
   const label = VOICE_LABELS[name] || name;
-  const hosted = label !== 'browser';
-  el.innerHTML = `<span class="chip ${hosted ? 'ok' : 'syn'}">voice: ${escapeHtml(label)}</span>`;
+  [$('#voiceProvider'), $('#composerVoiceProvider')].forEach((el) => {
+    el.innerHTML = `<span class="chip ${name === 'browser' ? 'syn' : 'ok'}">Voice: ${escapeHtml(label)}</span>`;
+  });
 }
-
-/* Say on load which provider is configured, so the fallback is visible before
- * anyone has spoken a word. */
-(async () => {
-  try {
-    const data = await fetch(API + '/api/speech/status').then((r) => r.json());
-    voiceProviderConfigured = data.value.configured === true;
-    showVoiceProvider(data.value.active);
-  } catch (_) {
-    voiceProviderConfigured = false;
-    showVoiceProvider('browser');
-  }
-})();
 
 $$('#langRow button').forEach((btn) => {
   btn.addEventListener('click', () => {
@@ -176,42 +250,117 @@ $$('#langRow button').forEach((btn) => {
 
 /* --------------------------------------------------------------- asking */
 
+function settleConfirmation(message) {
+  const confirmation = pendingConfirmation;
+  if (!confirmation) return null;
+  pendingConfirmation = null;
+  confirmation.box.textContent = message;
+  return confirmation.text;
+}
+
+function confirmPending() {
+  if (turnInFlight || !pendingConfirmation) return;
+  ask(settleConfirmation('Confirmed.'), true);
+}
+
+function cancelPending() {
+  if (turnInFlight || !pendingConfirmation) return;
+  cancelListening();
+  stopSpeaking();
+  settleConfirmation('Cancelled. Nothing was done.');
+}
+
+function submitInput(text) {
+  if (turnInFlight) return;
+  const reply = text.trim().toLowerCase().replace(/[.!?,।]+$/u, '').trim();
+  if (pendingConfirmation && ['yes', 'हाँ', 'हां', 'ಹೌದು'].includes(reply)) {
+    confirmPending();
+  } else if (pendingConfirmation && ['no', 'cancel', 'नहीं', 'नही', 'ಇಲ್ಲ'].includes(reply)) {
+    cancelPending();
+    setMicState('idle');
+  } else {
+    ask(text);
+  }
+}
+
 $('#sendBtn').addEventListener('click', () => {
   const text = $('#textInput').value.trim();
-  if (text) ask(text);
+  if (text) submitInput(text);
 });
 
-$('#textInput').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') $('#sendBtn').click();
+$('#textInput').addEventListener('keydown', (event) => {
+  if (event.key === 'Enter' && !event.isComposing) $('#sendBtn').click();
 });
 
-$$('#examples button').forEach((btn) => {
-  btn.addEventListener('click', () => {
-    $('#textInput').value = btn.textContent;
-    ask(btn.textContent);
+$$('#examples button').forEach((button) => {
+  button.addEventListener('click', () => {
+    $('#textInput').value = button.textContent.trim();
+    submitInput($('#textInput').value);
   });
 });
 
-async function ask(text, confirmed = false) {
-  const context = { ...lastContext, confirmed, user_id: 'demo_citizen', area: 'Super Market' };
-  const response = await fetch(API + '/api/ask', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text, context }),
-  }).then((r) => r.json());
-
-  // Remember an amount so "apply" in the next turn knows what it refers to.
-  if (response.slots && response.slots.amount_inr) {
-    lastContext.amount_inr = response.slots.amount_inr;
+function revealComposer() {
+  const composer = $('#composer');
+  if (!composer.hidden) return;
+  const focused = document.activeElement;
+  const demo = $('#composerDemo');
+  demo.append($('#examples'));
+  $('#composerControls').append($('#micError'), $('#citizenControls'), $('#langRow'), demo);
+  if (window.ResizeObserver) {
+    new ResizeObserver(() => {
+      if (composer.offsetHeight) {
+        $('#citizen').style.setProperty('--composer-clearance', `${composer.offsetHeight}px`);
+      }
+    }).observe(composer);
   }
+  composer.hidden = false;
+  $('#citizen').classList.add('has-composer');
+  if (focused === $('#mic')) $('#composerMic').focus();
+  else if (demo.contains(focused)) demo.querySelector('summary').focus({ preventScroll: true });
+  else if (focused && $('#composerControls').contains(focused)) focused.focus();
+}
 
-  renderTurn(text, response);
-  speak(response.spoken);
+function showLatestAnswer() {
+  if (!$('#citizen').classList.contains('active')) return;
+  const card = $('#answers').firstElementChild.getBoundingClientRect();
+  const headerBottom = $('header.top').getBoundingClientRect().bottom;
+  const composerTop = $('#composer').getBoundingClientRect().top;
+  const top = headerBottom + 8;
+  const bottom = composerTop - 8;
+  // A long answer starts below the header and can be scrolled to its end.
+  if (card.height > bottom - top || card.top < top) window.scrollBy(0, card.top - top);
+  else if (card.bottom > bottom) window.scrollBy(0, card.bottom - bottom);
+}
 
-  if (response.needs_confirmation) {
-    pendingConfirmation = { text };
-  } else {
-    pendingConfirmation = null;
+async function ask(text, confirmed = false) {
+  if (turnInFlight) return;
+  turnInFlight = true;
+  cancelListening();
+  stopSpeaking();
+  if (SpeechRecognition) showMicError('');
+  if (pendingConfirmation) settleConfirmation('Superseded by a new question. Nothing was done.');
+  setMicState('thinking');
+  const context = { ...lastContext, confirmed, user_id: 'demo_citizen', area: 'Super Market' };
+  try {
+    const request = await fetch(API + '/api/ask', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, context }),
+    });
+    if (!request.ok) throw new Error('Request failed');
+    const response = await request.json();
+    if (response.slots?.amount_inr) lastContext.amount_inr = response.slots.amount_inr;
+    renderTurn(text, response);
+    revealComposer();
+    showLatestAnswer();
+    speak(response.spoken);
+  } catch (_) {
+    renderNotice(confirmed
+      ? 'Could not verify submission. Check the officer queue before trying again.'
+      : 'Could not reach Arithva. Please try again.');
+    setMicState('idle');
+  } finally {
+    turnInFlight = false;
   }
 }
 
@@ -237,42 +386,54 @@ function renderTurn(said, response) {
         <p><strong>Nothing has happened yet.</strong> Arithva reads back every action before
         it takes it.</p>
         <div class="confirm-actions">
-          <button class="primary" data-confirm="yes">Yes, do it</button>
+          <button class="primary" data-confirm="yes">Yes, do it once</button>
           <button class="ghost" data-confirm="no">No, cancel</button>
         </div>
       </div>`;
   }
 
   const result = response.tool_result;
-  if (result) {
-    html += renderToolResult(response.intent, result);
+  if (result) html += renderToolResult(response.intent, result);
+  else if (response.needs_confirmation) {
+    html += renderSource(null, 'Arithva read-back', 'Review the request before giving consent.');
+  } else {
+    html += renderSource(null, 'Arithva conversation', 'No tool result for this turn.');
+  }
+  if (response.spoken) {
+    html += '<div class="playback-actions"><button type="button" class="ghost" data-hear>Hear again</button>'
+      + '<button type="button" class="ghost" data-stop>Stop</button></div>';
   }
 
   card.innerHTML = html;
-
-  const yes = card.querySelector('[data-confirm="yes"]');
-  if (yes) {
-    yes.addEventListener('click', () => {
-      yes.closest('.confirm-box').innerHTML = '<p class="muted">Confirmed.</p>';
-      ask(said, true);
-    });
-    card.querySelector('[data-confirm="no"]').addEventListener('click', () => {
-      card.querySelector('.confirm-box').innerHTML = '<p class="muted">Cancelled. Nothing was done.</p>';
-      pendingConfirmation = null;
-    });
+  const box = card.querySelector('.confirm-box');
+  if (box) {
+    pendingConfirmation = { text: said, box };
+    box.querySelector('[data-confirm="yes"]').addEventListener('click', confirmPending);
+    box.querySelector('[data-confirm="no"]').addEventListener('click', cancelPending);
   }
-
+  card.querySelector('[data-hear]')?.addEventListener('click', () => {
+    if (turnInFlight || listeningSession) return;
+    speak(response.spoken);
+  });
+  card.querySelector('[data-stop]')?.addEventListener('click', stopSpeaking);
   $('#answers').prepend(card);
+}
+
+function renderSource(result, source, caveat) {
+  const asOf = result?.as_of ? ` · <b>as of</b> ${escapeHtml(result.as_of)}` : '';
+  const disclaimer = result?.disclaimer ? `<br>${escapeHtml(result.disclaimer)}` : '';
+  return `<div class="source-line"><b>Source:</b> ${escapeHtml(result?.source || source)}${asOf}
+    <br><b>Caveats:</b> ${escapeHtml(result?.confidence || caveat)}${disclaimer}</div>`;
 }
 
 function renderToolResult(intent, result) {
   if (result.status === 'unavailable') {
     return `<div class="banner warn" style="margin:14px 0 0"><b>No answer available.</b>
-      ${escapeHtml(result.reason)} Arithva does not fill this gap with a guess.</div>`;
+      ${escapeHtml(result.reason)} Arithva does not fill this gap with a guess.</div>` + renderSource(result, 'Arithva tool', 'No data returned.');
   }
   if (result.status === 'refused') {
     return `<div class="banner warn" style="margin:14px 0 0"><b>Refused.</b>
-      ${escapeHtml(result.reason)}</div>`;
+      ${escapeHtml(result.reason)}</div>` + renderSource(result, 'Arithva tool', 'The request was refused.');
   }
 
   const value = result.value || {};
@@ -340,14 +501,7 @@ function renderToolResult(intent, result) {
       Open the <strong>Officer</strong> tab to sign.</div>`;
   }
 
-  // Provenance. Every answer says where its numbers came from.
-  let source = `<div class="source-line"><b>Source:</b> ${escapeHtml(result.source || 'n/a')}`;
-  if (result.as_of) source += ` &middot; <b>as of</b> ${escapeHtml(result.as_of)}`;
-  if (result.confidence) source += `<br><b>Caveat:</b> ${escapeHtml(result.confidence)}`;
-  if (result.disclaimer) source += `<br>${escapeHtml(result.disclaimer)}`;
-  source += `</div>`;
-
-  return body + source;
+  return body + renderSource(result, 'Arithva tool', 'No additional caveats reported.');
 }
 
 /* --------------------------------------------------------- officer keys */
